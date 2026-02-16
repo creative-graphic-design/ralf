@@ -1,4 +1,4 @@
-from image2layout.train.helpers.hfds_instance_wise_transforms import (
+from ralf.train.helpers.hfds_instance_wise_transforms import (
     get_indexes_for_lexicographic_sort,
     sort_label_transform,
 )

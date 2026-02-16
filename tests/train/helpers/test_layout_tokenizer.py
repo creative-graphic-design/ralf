@@ -6,8 +6,9 @@ from typing import Any
 import datasets as ds
 import torch
 from einops import rearrange, reduce
-from image2layout.train.global_variables import GEO_KEYS, PRECOMPUTED_WEIGHT_DIR
-from image2layout.train.helpers.layout_tokenizer import CHOICES, LayoutSequenceTokenizer
+
+from ralf.train.global_variables import GEO_KEYS, PRECOMPUTED_WEIGHT_DIR
+from ralf.train.helpers.layout_tokenizer import CHOICES, LayoutSequenceTokenizer
 from tests.util import repeat_func
 
 
@@ -53,6 +54,7 @@ def _setup_dummmy_inputs(
 
 @repeat_func(100)
 def test_layout_tokenizer() -> None:
+
     batch_size = random.randint(1, 10)
     max_seq_length = random.randint(2, 32)
     num_labels = random.randint(1, 10)
@@ -63,8 +65,15 @@ def test_layout_tokenizer() -> None:
 
     if kwargs["geo_quantization"] == "kmeans":
         weight_path = os.path.join(
-            PRECOMPUTED_WEIGHT_DIR, "clustering", "pku10_kmeans_train_clusters.pkl"
+            os.environ.get("RALF_PRECOMPUTED_WEIGHT_DIR", PRECOMPUTED_WEIGHT_DIR),
+            "clustering",
+            "cache",
+            "pku10_kmeans_train_clusters.pkl",
         )
+        if not os.path.exists(weight_path):
+            import pytest
+
+            pytest.skip("kmeans clusters not found")
     else:
         weight_path = None
 

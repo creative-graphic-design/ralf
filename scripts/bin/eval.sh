@@ -12,7 +12,7 @@ DEBUG=${DEBUG:-"False"}
 echo -e "Evaluation: \033[0;32m${JOB_DIR}\033[0m with debug=\033[0;32m${DEBUG}\033[0m"
 
 SAVE_SCORE_DIR="${PWD}/tmp/scores/${DATASET}"
-FID_WEIGHT_DIR="${PWD}/cache/PRECOMPUTED_WEIGHT_DIR/fidnet/${DATASET}"
+FID_WEIGHT_DIR="${RALF_PRECOMPUTED_WEIGHT_DIR}/fidnet/${DATASET}"
 
 EXTRA_ARGS=${EXTRA_ARGS:-""}
 if [[ $DEBUG == True ]]; then
@@ -31,11 +31,11 @@ for dir in "$JOB_DIR"/generated_samples_*; do
             printf "$TEMPLATE" "$varname" "$value"
         done
 
-        poetry run python eval.py \
+        uv run python eval.py \
             --input-dir "${INPUT_DIR}" \
             --fid-weight-dir "${FID_WEIGHT_DIR}" \
             --save-score-dir "${SAVE_SCORE_DIR}" \
-            --dataset-path "${DATA_ROOT}/${DATASET}" \
+            --dataset-path "${RALF_DATASET_DIR}/${DATASET}" \
             $EXTRA_ARGS
     fi
 done

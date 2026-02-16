@@ -1,0 +1,2 @@
+_target_: ralf.train.models.generator.LayoutDM
+_partial_: true

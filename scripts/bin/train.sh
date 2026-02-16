@@ -32,7 +32,7 @@ fi
 
 JOB_NAME="${DATASET}_${EXPERIMENT}_${EXP_ID}"
 JOB_NAME=$(echo $JOB_NAME | tr "_" "-")
-DATA_DIR="${DATA_ROOT}/${DATASET}"
+DATA_DIR="${RALF_DATASET_DIR}/${DATASET}"
 
 echo "Debug is ${DEBUG}"
 if [[ $DEBUG == "True" ]]; then
@@ -46,8 +46,8 @@ SHARED_DEFAULT_ARGS="+experiment=${EXPERIMENT} job_dir=${JOB_DIR} dataset=${DATA
 ARGS="${SHARED_DEFAULT_ARGS} ${ADDITIONAL_ARGS} debug=${DEBUG}"
 echo "ARGS=$ARGS"
 
-PYTHON_MODULE="image2layout.train.train"
+PYTHON_MODULE="ralf.train.train"
 
 export MASTER_PORT=$RANDOM
 
-OMP_NUM_THREADS=${OMP_NUM_THREADS} poetry run python -m ${PYTHON_MODULE} ${ARGS}
+OMP_NUM_THREADS=${OMP_NUM_THREADS} uv run python -m ${PYTHON_MODULE} ${ARGS}

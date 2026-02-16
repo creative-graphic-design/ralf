@@ -8,9 +8,11 @@ from functools import partial
 import fsspec
 import torch
 import yaml
+from omegaconf import OmegaConf
+
 from eval import KEYS, compute_average, load_pkl
-from image2layout.train.data import collate_fn, get_dataset
-from image2layout.train.helpers.metric import (
+from ralf.train.data import collate_fn, get_dataset
+from ralf.train.helpers.metric import (
     compute_alignment,
     compute_overlap,
     compute_overlay,
@@ -19,9 +21,8 @@ from image2layout.train.helpers.metric import (
     compute_underlay_effectiveness,
     compute_validity,
 )
-from image2layout.train.helpers.rich_utils import get_progress
-from image2layout.train.helpers.util import set_seed
-from omegaconf import OmegaConf
+from ralf.train.helpers.rich_utils import get_progress
+from ralf.train.helpers.util import set_seed
 
 logger = logging.getLogger(__name__)
 
@@ -45,7 +46,7 @@ def main() -> None:
     parser.add_argument(
         "--dataset-path",
         type=str,
-        default="",
+        default=os.environ.get("RALF_DATASET_DIR", ""),
     )
     parser.add_argument(
         "--debug",
@@ -198,9 +199,9 @@ def main() -> None:
         generated_samples, validity = compute_validity(generated_samples)
 
         # Attach image and saliency to generated samples.
-        assert len(dataset[split]) == len(
-            generated_samples
-        ), f"{len(dataset[split])} != {len(generated_samples)}"
+        assert len(dataset[split]) == len(generated_samples), (
+            f"{len(dataset[split])} != {len(generated_samples)}"
+        )
 
         # compute scores for each run
         logger.info("Evaluation start!!")

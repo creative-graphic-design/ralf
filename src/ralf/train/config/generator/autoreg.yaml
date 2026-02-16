@@ -1,0 +1,2 @@
+_target_: ralf.train.models.generator.ConcateAuxilaryTaskAutoreg
+_partial_: true

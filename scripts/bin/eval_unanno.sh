@@ -30,10 +30,10 @@ for dir in "$JOB_DIR"/no_anno_data_*"$DATASET"*; do
             printf "$TEMPLATE" "$varname" "$value"
         done
 
-        poetry run python eval_unanno.py \
+        uv run python eval_unanno.py \
             --input-dir "${INPUT_DIR}" \
             --save-score-dir "${SAVE_SCORE_DIR}" \
-            --dataset-path "${DATA_ROOT}/${DATASET}" \
+            --dataset-path "${RALF_DATASET_DIR}/${DATASET}" \
             $EXTRA_ARGS
     fi
 done

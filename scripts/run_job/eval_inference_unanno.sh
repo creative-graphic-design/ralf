@@ -26,5 +26,4 @@ _ARGS="cond_type=${_cond_type} test_split=${test_split} no_anno_dataset_name=${D
 source scripts/bin/inference_unanno.sh $JOB_DIR $_ARGS
 source scripts/bin/eval_unanno.sh $JOB_DIR    
 
-poetry run python -m image2layout.train.helpers.export_score_to_tex_unanno --root $JOB_DIR
-
+uv run python -m ralf.train.helpers.export_score_to_tex_unanno --root $JOB_DIR
