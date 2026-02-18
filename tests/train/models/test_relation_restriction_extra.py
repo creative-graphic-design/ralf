@@ -1,7 +1,9 @@
+import os
+
 import pytest
 import torch
 
-from ralf.train.helpers.relationships import RelLoc, RelSize
+from ralf.train.helpers.relationships import RelElement, RelLoc, RelSize
 from ralf.train.helpers.task import get_condition
 from ralf.train.models.layoutformerpp.relation_restriction import (
     DiscretizeBoundingBox,
@@ -14,6 +16,36 @@ from ralf.train.models.layoutformerpp.relation_restriction import (
     detect_label_idx,
 )
 from ralf.train.models.layoutformerpp.task_preprocessor import RelationshipPreprocessor
+
+
+def _make_relationship_preprocessor(tmp_path, tokenizer, ids=None):
+    old_cache_dir = os.environ.get("RALF_CACHE_DIR")
+    cache_dir = tmp_path / "relationship_cache"
+    cache_dir.mkdir(parents=True, exist_ok=True)
+    if ids is None:
+        ids = ["0"]
+    label_name = tokenizer._label_feature.names[0]
+    relation = [
+        label_name,
+        RelElement.A,
+        RelLoc.LEFT,
+        label_name,
+        RelElement.B,
+    ]
+    table = {str(_id): [relation] for _id in ids}
+    table_path = (
+        cache_dir / "pku_cgl_relationships_dic_using_canvas_sort_label_lexico.pt"
+    )
+    torch.save(table, table_path)
+    os.environ["RALF_CACHE_DIR"] = str(cache_dir)
+    preprocessor = RelationshipPreprocessor(
+        tokenizer=tokenizer, global_task_embedding=False
+    )
+    if old_cache_dir is None:
+        os.environ.pop("RALF_CACHE_DIR", None)
+    else:
+        os.environ["RALF_CACHE_DIR"] = old_cache_dir
+    return preprocessor
 
 
 def test_relation_types_and_discretize() -> None:
@@ -50,9 +82,11 @@ def test_discretize_call_and_canvas_error() -> None:
         define_canvas_restriction(mask, "unknown", 128)
 
 
-def test_label_and_relation_constraints(layout_tokenizer, small_batch) -> None:
-    preprocessor = RelationshipPreprocessor(
-        tokenizer=layout_tokenizer, global_task_embedding=False
+def test_label_and_relation_constraints(
+    tmp_path, layout_tokenizer, small_batch
+) -> None:
+    preprocessor = _make_relationship_preprocessor(
+        tmp_path, layout_tokenizer, small_batch["id"]
     )
 
     label_constraint = TransformerSortByDictLabelConstraint(preprocessor)
@@ -76,9 +110,11 @@ def test_label_and_relation_constraints(layout_tokenizer, small_batch) -> None:
     assert isinstance(tokens, list)
 
 
-def test_relation_constraint_progression(layout_tokenizer, small_batch) -> None:
-    preprocessor = RelationshipPreprocessor(
-        tokenizer=layout_tokenizer, global_task_embedding=False
+def test_relation_constraint_progression(
+    tmp_path, layout_tokenizer, small_batch
+) -> None:
+    preprocessor = _make_relationship_preprocessor(
+        tmp_path, layout_tokenizer, small_batch["id"]
     )
     cond, _ = get_condition(small_batch, "relation", layout_tokenizer)
     seq_constraints = preprocessor(cond)
@@ -106,9 +142,11 @@ def test_relation_constraint_progression(layout_tokenizer, small_batch) -> None:
     assert mask.numel() == rel_constraint.logits_size
 
 
-def test_detect_label_idx_and_get_target_bbox(layout_tokenizer, small_batch) -> None:
-    preprocessor = RelationshipPreprocessor(
-        tokenizer=layout_tokenizer, global_task_embedding=False
+def test_detect_label_idx_and_get_target_bbox(
+    tmp_path, layout_tokenizer, small_batch
+) -> None:
+    preprocessor = _make_relationship_preprocessor(
+        tmp_path, layout_tokenizer, small_batch["id"]
     )
     rel_constraint = TransformerSortByDictRelationConstraint(preprocessor)
     types = torch.tensor([preprocessor.name_to_id("text")])
@@ -137,10 +175,8 @@ def test_detect_label_idx_and_get_target_bbox(layout_tokenizer, small_batch) -> 
     assert missing == 0
 
 
-def test_label_constraints_with_sep(layout_tokenizer) -> None:
-    preprocessor = RelationshipPreprocessor(
-        tokenizer=layout_tokenizer, global_task_embedding=False
-    )
+def test_label_constraints_with_sep(tmp_path, layout_tokenizer) -> None:
+    preprocessor = _make_relationship_preprocessor(tmp_path, layout_tokenizer)
     label_constraint = TransformerSortByDictLabelConstraint(preprocessor)
     label_constraint.add_sep_token = True
     label_constraint.prepare([[1, 2, 0]])
@@ -161,9 +197,9 @@ def test_label_constraints_with_sep(layout_tokenizer) -> None:
     assert isinstance(tokens, list)
 
 
-def test_relation_constraint_branching(layout_tokenizer, small_batch) -> None:
-    preprocessor = RelationshipPreprocessor(
-        tokenizer=layout_tokenizer, global_task_embedding=False
+def test_relation_constraint_branching(tmp_path, layout_tokenizer, small_batch) -> None:
+    preprocessor = _make_relationship_preprocessor(
+        tmp_path, layout_tokenizer, small_batch["id"]
     )
     rel_constraint = TransformerSortByDictRelationConstraint(preprocessor)
     cond, _ = get_condition(small_batch, "relation", layout_tokenizer)
@@ -204,9 +240,11 @@ def test_relation_constraint_branching(layout_tokenizer, small_batch) -> None:
     assert mask.numel() == rel_constraint.logits_size
 
 
-def test_relation_constraint_additional_branches(layout_tokenizer, small_batch) -> None:
-    preprocessor = RelationshipPreprocessor(
-        tokenizer=layout_tokenizer, global_task_embedding=False
+def test_relation_constraint_additional_branches(
+    tmp_path, layout_tokenizer, small_batch
+) -> None:
+    preprocessor = _make_relationship_preprocessor(
+        tmp_path, layout_tokenizer, small_batch["id"]
     )
     rel_constraint = TransformerSortByDictRelationConstraint(preprocessor)
     cond, _ = get_condition(small_batch, "relation", layout_tokenizer)
@@ -316,3 +354,78 @@ def test_relation_constraint_additional_branches(layout_tokenizer, small_batch) 
             [[10, 12, 20, 22]],
             [[("canvas", RelLoc.UNKNOWN)]],
         )
+
+
+def test_relation_constraint_type_and_finished(
+    tmp_path, layout_tokenizer, small_batch
+) -> None:
+    preprocessor = _make_relationship_preprocessor(
+        tmp_path, layout_tokenizer, small_batch["id"]
+    )
+    rel_constraint = TransformerSortByDictRelationConstraint(preprocessor)
+    cond, _ = get_condition(small_batch, "relation", layout_tokenizer)
+    seq_constraints = preprocessor(cond)
+    rel_constraints = rel_constraint.prepare(seq_constraints["seq"][0])
+
+    token_ids = torch.tensor([[preprocessor.name_to_id("bos")]])
+    mask, _ = rel_constraint(token_ids, rel_constraints)
+    next_type_token = rel_constraint.type_constraint_token_id[0].item()
+    assert mask[next_type_token].item() is False
+
+    finished_state = TransformerSortByDictConstraintDecodeState(num_elements=1)
+    finished_state.curr_element = 1
+    finished_state.num_bbox = 4
+    rel_constraint.decode_state = [finished_state]
+    mask, _ = rel_constraint(token_ids, [[]])
+    eos_idx = preprocessor.name_to_id("eos")
+    assert mask[eos_idx].item() is False
+
+
+def test_relation_constraint_empty_relations(
+    tmp_path, layout_tokenizer, small_batch
+) -> None:
+    preprocessor = _make_relationship_preprocessor(
+        tmp_path, layout_tokenizer, small_batch["id"]
+    )
+    rel_constraint = TransformerSortByDictRelationConstraint(preprocessor)
+    cond, _ = get_condition(small_batch, "relation", layout_tokenizer)
+    seq_constraints = preprocessor(cond)
+    rel_constraint.prepare(seq_constraints["seq"][0])
+
+    state = TransformerSortByDictConstraintDecodeState(num_elements=2)
+    state.curr_element = 2
+    state.pred_bbox = [[10, 12, 20, 22]]
+    rel_constraint.decode_state = [state]
+
+    token_ids = torch.tensor(
+        [
+            [
+                rel_constraint.label_tokens[0],
+                rel_constraint.width_start_idx,
+                rel_constraint.height_start_idx,
+            ]
+        ]
+    )
+    mask, _ = rel_constraint(token_ids, [[], []])
+    expected = ~preprocessor.tokenizer.token_mask[token_ids.size(1) - 1]
+    assert torch.equal(mask, expected)
+
+
+def test_relation_constraint_canvas_skip(
+    tmp_path, layout_tokenizer, small_batch
+) -> None:
+    preprocessor = _make_relationship_preprocessor(
+        tmp_path, layout_tokenizer, small_batch["id"]
+    )
+    rel_constraint = TransformerSortByDictRelationConstraint(preprocessor)
+    cond, _ = get_condition(small_batch, "relation", layout_tokenizer)
+    seq_constraints = preprocessor(cond)
+    rel_constraint.prepare(seq_constraints["seq"][0])
+    state = TransformerSortByDictConstraintDecodeState(num_elements=1)
+    state.curr_element = 1
+    state.pred_bbox = [[10, 12, 20, 22]]
+    rel_constraint.decode_state = [state]
+
+    token_ids = torch.tensor([[rel_constraint.label_tokens[0]]])
+    mask, _ = rel_constraint(token_ids, [[("canvas", RelLoc.TOP)]])
+    assert mask.numel() == rel_constraint.logits_size

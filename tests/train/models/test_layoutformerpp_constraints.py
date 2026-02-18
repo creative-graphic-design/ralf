@@ -64,7 +64,7 @@ def test_relation_restriction_prepare_and_call(small_batch, layout_tokenizer) ->
     rel_constraint = TransformerSortByDictRelationConstraint(preprocessor)
     rel_constraints = rel_constraint.prepare(seq[0])
     label_token = rel_constraint.label_tokens[0]
-    token_ids = torch.tensor([[label_token, label_token]])
+    token_ids = torch.tensor([[label_token]])
     _ = rel_constraint(token_ids, rel_constraints)
 
     discretizer = DiscretizeBoundingBox(num_x_grid=4, num_y_grid=4)

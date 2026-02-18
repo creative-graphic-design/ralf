@@ -34,7 +34,11 @@ from ralf.train.inference_single_data import (
 from ralf.train.models.retrieval.retriever import Retriever
 
 
-def _write_config(job_dir: Path, dataset_dir: str) -> None:
+def _write_config(
+    job_dir: Path,
+    dataset_dir: str,
+    target: str = "ralf.train.models.autoreg.Autoreg",
+) -> None:
     cfg = OmegaConf.create(
         {
             "dataset": {
@@ -47,7 +51,7 @@ def _write_config(job_dir: Path, dataset_dir: str) -> None:
             "data": {"transforms": ["image", "shuffle"], "tokenization": True},
             "tokenizer": {"num_bin": 128, "geo_quantization": "linear"},
             "generator": {
-                "_target_": "ralf.train.models.autoreg.Autoreg",
+                "_target_": target,
                 "_partial_": True,
                 "d_model": 256,
             },
@@ -130,6 +134,19 @@ def test_inference_single_data_helpers(tmp_path, dataset_dir) -> None:
     Image.new("RGB", (10, 10), color=(0, 0, 0)).save(image_path)
     img = read_image(str(image_path))
     assert img.ndim == 4
+
+
+def test_load_train_cfg_does_not_rewrite_targets(tmp_path, dataset_dir) -> None:
+    job_dir = tmp_path / "job_rewrite"
+    job_dir.mkdir(parents=True, exist_ok=True)
+    target = "image2layout.train.models.autoreg.Autoreg"
+    _write_config(job_dir, dataset_dir, target=target)
+
+    _, train_cfg, _ = load_train_cfg(str(job_dir))
+    assert train_cfg.generator._target_ == target
+
+    _, train_cfg_single, _ = load_train_cfg_single(str(job_dir))
+    assert train_cfg_single.generator._target_ == target
 
 
 def test_inference_find_checkpoints_filter(tmp_path, dataset_dir) -> None:

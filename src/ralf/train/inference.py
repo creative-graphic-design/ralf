@@ -221,9 +221,21 @@ def main(test_cfg: DictConfig) -> None:
                 inference_num_saliency=None,
             )
 
+        num_workers = 2 if not test_cfg.debug else 0
+        env_workers = os.environ.get("RALF_NUM_WORKERS")
+        if env_workers is not None:
+            try:
+                num_workers = int(env_workers)
+            except ValueError:
+                logger.warning(
+                    "Invalid RALF_NUM_WORKERS=%s; using %d",
+                    env_workers,
+                    num_workers,
+                )
+
         loaders[split] = torch.utils.data.DataLoader(
             dataset[split],
-            num_workers=2 if not test_cfg.debug else 0,
+            num_workers=num_workers,
             batch_size=test_cfg.batch_size,
             pin_memory=False,
             collate_fn=collate_fn_partial,

@@ -1,7 +1,10 @@
 import copy
+import io
 import logging
 import os
+import pickle
 import random
+import zipfile
 from abc import ABC
 from dataclasses import dataclass
 from typing import Any, Union
@@ -37,6 +40,34 @@ SPECIAL_TOKEN_VOCABULARIES = ["sep", "relation_sep", "canvas"]
 RELATIONSHIP_POSITION_VOCABULARIES = list(RelLoc)
 RELATIONSHIP_SIZE_VOCABULARIES = list(RelSize)
 RELATIONSHIP_UNIQUE_ELEMENT_VOCAVULARIES = list(RelElement)
+
+
+class _MappedUnpickler(pickle.Unpickler):
+    def find_class(self, module, name):
+        if module == "image2layout.train.helpers.relationships":
+            module = "ralf.train.helpers.relationships"
+        return super().find_class(module, name)
+
+
+def _load_relationship_table(path: str) -> dict[str, list]:
+    try:
+        return torch.load(path)
+    except ModuleNotFoundError as exc:
+        if "image2layout" not in str(exc):
+            raise
+        if zipfile.is_zipfile(path):
+            with zipfile.ZipFile(path, "r") as zf:
+                names = set(zf.namelist())
+                if "data.pkl" in names:
+                    member = "data.pkl"
+                elif "archive/data.pkl" in names:
+                    member = "archive/data.pkl"
+                else:
+                    raise KeyError("data.pkl not found in relationship archive")
+                data = zf.read(member)
+            return _MappedUnpickler(io.BytesIO(data)).load()
+        with open(path, "rb") as file_obj:
+            return _MappedUnpickler(file_obj).load()
 
 
 @dataclass
@@ -505,7 +536,7 @@ class RelationshipPreprocessor(BasePreprocessor):
             relationship_table_path = f"{PRECOMPUTED_WEIGHT_DIR}/relationship/pku_cgl_relationships_dic_using_canvas_sort_label_lexico.pt"
 
         logger.info(f"Load relationship cache from {relationship_table_path}")
-        self.table: dict[str, list] = torch.load(relationship_table_path)
+        self.table = _load_relationship_table(relationship_table_path)
         self.table = {k: random.sample(v, len(v)) for k, v in self.table.items()}
 
         self.label_preprocessor = LabelPreprocessor(
@@ -565,6 +596,7 @@ class RelationshipPreprocessor(BasePreprocessor):
                 # Add "eos" token.
                 _seq = torch.cat([_seq, self.get_token("eos", 1)[0]], dim=0)
                 seq_relation.append(_seq)
+                MAXIMUM_LENGTH = max(MAXIMUM_LENGTH, _seq.size(0))
                 continue
 
             # Equivalent to "shuffle_element=True"
