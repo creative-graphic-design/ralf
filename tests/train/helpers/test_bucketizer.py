@@ -3,9 +3,9 @@ import random
 from typing import Tuple
 
 import torch
-from image2layout.train.config.dataset import dataset_config_names
-from image2layout.train.global_variables import GEO_KEYS, PRECOMPUTED_WEIGHT_DIR
-from image2layout.train.helpers.bucketizer import (
+
+from ralf.train.global_variables import GEO_KEYS, PRECOMPUTED_WEIGHT_DIR
+from ralf.train.helpers.bucketizer import (
     bucketizer_factory,
     get_kmeans_cluster_center,
 )
@@ -38,9 +38,18 @@ def test_linear_bucketizer() -> None:
 @repeat_func(100)
 def test_kmeans_bucketizer() -> None:
     x, n_boundaries = _make_input()
-    dataset_name = random.choice(dataset_config_names())
+    dataset_name = random.choice(["cgl", "pku10"])
     pkl_name = f"{dataset_name}_kmeans_train_clusters.pkl"
-    weight_path = os.path.join(PRECOMPUTED_WEIGHT_DIR, "clustering", pkl_name)
+    weight_path = os.path.join(
+        os.environ.get("RALF_PRECOMPUTED_WEIGHT_DIR", PRECOMPUTED_WEIGHT_DIR),
+        "clustering",
+        "cache",
+        pkl_name,
+    )
+    if not os.path.exists(weight_path):
+        import pytest
+
+        pytest.skip("kmeans clusters not found")
 
     key = f"{random.choice(GEO_KEYS)}-{n_boundaries}"
     cluster_centers = get_kmeans_cluster_center(weight_path=weight_path, key=key)

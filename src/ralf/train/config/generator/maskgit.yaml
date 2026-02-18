@@ -1,0 +1,2 @@
+_target_: ralf.train.models.generator.MaskGIT
+_partial_: true

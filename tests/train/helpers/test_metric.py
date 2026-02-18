@@ -2,11 +2,8 @@ import math
 
 import datasets as ds
 import torch
-from image2layout.train.global_variables import GEO_KEYS
-from image2layout.train.helpers.metric import (
-    compute_overlay,
-    compute_underlay_effectiveness,
-)
+
+from ralf.train.global_variables import GEO_KEYS
 
 REL_TOL = 1e-4
 _feature_label = ds.ClassLabel(names=["text", "logo", "underlay"])
@@ -23,6 +20,11 @@ def _case_to_batch(case: dict) -> dict[str, torch.Tensor]:
 
 
 def test_compute_underlay_effectiveness() -> None:
+    import pytest
+
+    pytest.importorskip("cv2", exc_type=ImportError)
+    from ralf.train.helpers.metric import compute_underlay_effectiveness
+
     cases = [
         # a2 is completely inside a1
         {
@@ -107,6 +109,11 @@ def test_compute_underlay_effectiveness() -> None:
 
 
 def test_compute_overlay_effectiveness() -> None:
+    import pytest
+
+    pytest.importorskip("cv2", exc_type=ImportError)
+    from ralf.train.helpers.metric import compute_overlay
+
     cases = [
         {
             "example": {
@@ -161,4 +168,4 @@ if __name__ == "__main__":
     test_compute_underlay_effectiveness()
     test_compute_overlay_effectiveness()
 
-# OMP_NUM_THREADS=4 CUDA_VISIBLE_DEVICES=0 poetry run python -m tests.train.helpers.test_metric
+# OMP_NUM_THREADS=4 CUDA_VISIBLE_DEVICES=0 uv run python -m tests.train.helpers.test_metric

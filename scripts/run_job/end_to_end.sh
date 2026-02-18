@@ -35,4 +35,4 @@ source scripts/bin/train.sh $DATASET $EXPERIMENT
 # ### Evaluation
 # source scripts/bin/eval.sh $JOB_DIR
 # ### Export a score to LaTeX
-# poetry run python -m image2layout.train.helpers.export_score_to_tex --root $JOB_DIR
+# uv run python -m ralf.train.helpers.export_score_to_tex --root $JOB_DIR

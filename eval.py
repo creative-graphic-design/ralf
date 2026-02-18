@@ -12,10 +12,13 @@ import numpy as np
 import torch
 import torch.nn.functional as F
 import yaml
-from image2layout.train.data import collate_fn, get_dataset
-from image2layout.train.fid.model import FIDNetV3, load_fidnet_v3
-from image2layout.train.global_variables import GEO_KEYS
-from image2layout.train.helpers.metric import (
+from omegaconf import OmegaConf
+from torch import Tensor
+
+from ralf.train.data import collate_fn, get_dataset
+from ralf.train.fid.model import FIDNetV3, load_fidnet_v3
+from ralf.train.global_variables import GEO_KEYS
+from ralf.train.helpers.metric import (
     SingletonTimmInceptionV3,
     compute_alignment,
     compute_generative_model_scores,
@@ -26,12 +29,10 @@ from image2layout.train.helpers.metric import (
     compute_underlay_effectiveness,
     compute_validity,
 )
-from image2layout.train.helpers.rich_utils import CONSOLE, get_progress
-from image2layout.train.helpers.task import REFINEMENT_NOISE_STD
-from image2layout.train.helpers.util import box_cxcywh_to_xyxy, set_seed
-from image2layout.train.helpers.visualizer import mask_out_bbox_area
-from omegaconf import OmegaConf
-from torch import Tensor
+from ralf.train.helpers.rich_utils import CONSOLE, get_progress
+from ralf.train.helpers.task import REFINEMENT_NOISE_STD
+from ralf.train.helpers.util import box_cxcywh_to_xyxy, set_seed
+from ralf.train.helpers.visualizer import mask_out_bbox_area
 
 logger = logging.getLogger(__name__)
 
@@ -43,9 +44,7 @@ def perturb_layout(generated_samples):
     outputs = []
     logger.info(f"Add noise to layout with std={REFINEMENT_NOISE_STD}")
     for batch in generated_samples:
-
         for key in GEO_KEYS:
-
             noise = torch.normal(
                 0,
                 REFINEMENT_NOISE_STD,
@@ -100,7 +99,7 @@ def print_scores(scores: dict[str, list[float]]) -> None:
 
 
 def compute_average(
-    scores_all: dict[str, list[dict[str, Union[float, dict[str, float]]]]]
+    scores_all: dict[str, list[dict[str, Union[float, dict[str, float]]]]],
 ) -> dict[str, dict[str, float]]:
     scores_avg = {k: defaultdict(list) for k in scores_all.keys()}
 
@@ -205,7 +204,7 @@ def main() -> None:
     parser.add_argument(
         "--dataset-path",
         type=str,
-        default="",
+        default=os.environ.get("RALF_DATASET_DIR", ""),
     )
     parser.add_argument(
         "--add-noise",
@@ -441,7 +440,9 @@ def main() -> None:
         scores = {k: float(v) for k, v in scores.items()}
 
         if calculate_paired_score:
-            feats_preds["layout"]: torch.Tensor = torch.cat(feats_preds["layout"], dim=0)  # type: ignore
+            feats_preds["layout"]: torch.Tensor = torch.cat(
+                feats_preds["layout"], dim=0
+            )  # type: ignore
             feats_preds["image"]: torch.Tensor = torch.cat(feats_preds["image"], dim=0)  # type: ignore
             if use_generated_samples:
                 target_splits = [split]
@@ -453,7 +454,9 @@ def main() -> None:
                 paired_score: dict[str, float] = {}
                 assert len(feats_gts[modality][target_split]) == len(
                     feats_preds[modality]
-                ), f"GT {len(feats_gts[modality][target_split])} != Pred {len(feats_preds[modality])}"
+                ), (
+                    f"GT {len(feats_gts[modality][target_split])} != Pred {len(feats_preds[modality])}"
+                )
                 # Compute FID for layout
                 _score = compute_generative_model_scores(
                     feats_gts[modality][target_split], feats_preds[modality]

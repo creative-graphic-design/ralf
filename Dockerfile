@@ -57,11 +57,8 @@ ENV HOME /src
 WORKDIR /src
 ENV SHELL /bin/bash
 
-ENV POETRY_HOME="/opt/poetry"
-RUN curl -sSL https://install.python-poetry.org | python - && \
-    cd /usr/local/bin && \
-    ln -s /opt/poetry/bin/poetry
+RUN curl -LsSf https://astral.sh/uv/install.sh | sh
+ENV PATH="/root/.local/bin:${PATH}"
 COPY ["./pyproject.toml", "/src/"]
-COPY image2layout /src/image2layout
-RUN poetry config virtualenvs.create true
-RUN poetry install
+COPY src/ralf /src/src/ralf
+RUN uv sync --extra original-impl

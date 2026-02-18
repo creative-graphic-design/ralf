@@ -11,10 +11,10 @@ echo "DATASET: ${DATASET}"
 OPTIONAL_ARGS=${@:2}
 echo "OPTIONAL_ARGS: ${OPTIONAL_ARGS}"
 
-poetry run python3 -m image2layout.train.inference_single_data \
+uv run python3 -m ralf.train.inference_single_data \
     job_dir=$JOB_DIR \
     result_dir=$JOB_DIR \
-    dataset_path="${DATA_ROOT}/${DATASET}" \
+    dataset_path="${RALF_DATASET_DIR}/${DATASET}" \
     +sampling="top_k" \
     debug=$DEBUG \
     hydra/hydra_logging=none \
