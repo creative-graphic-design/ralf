@@ -1,18 +1,46 @@
 repos:
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v4.6.0
+    hooks:
+      - id: trailing-whitespace
+      - id: end-of-file-fixer
+      - id: check-yaml
+      - id: check-toml
+      - id: check-added-large-files
+
+  - repo: https://github.com/jendrikseipp/vulture
+    rev: v2.11
+    hooks:
+      - id: vulture
+        args:
+          - src/ralf/transformers/autoreg
+          - src/ralf/transformers/cglgan
+          - src/ralf/transformers/dsgan
+          - src/ralf/transformers/icvt
+          - src/ralf/transformers/layoutdm
+          - src/ralf/transformers/maskgit
+          - src/ralf/transformers/ralf
+          - src/ralf/transformers/modeling_utils.py
+          - --ignore-names
+          - config_class,base_model_prefix,vocab_files_names,model_input_names,padding_side,truncation_side,vocab_size,_tokenize,_convert_id_to_token,save_vocabulary,build_inputs_with_special_tokens,attributes,_init_weights,forward,bg_idx,bucketizers,id_to_name,convert_tokens_to_ids,token_mask,logger
+        pass_filenames: false
+
   - repo: local
     hooks:
       - id: ruff
-        name: ruff
-        entry: uv run ruff check --fix
+        name: ruff (uv)
+        entry: uv run ruff check --fix --exit-non-zero-on-fix
         language: system
-        types: [python]
+        types_or: [python, pyi]
+
       - id: ruff-format
-        name: ruff-format
+        name: ruff format (uv)
         entry: uv run ruff format
         language: system
-        types: [python]
+        types_or: [python, pyi]
+
       - id: pytest
-        name: pytest
-        entry: uv run pytest --cov=ralf --cov-fail-under=90
+        name: pytest (uv)
+        entry: uv run pytest -vsx --cov=ralf
         language: system
         pass_filenames: false

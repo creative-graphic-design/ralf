@@ -5,6 +5,9 @@ description = "Retrieval-Augmented Layout Transformer for Content-Aware Layout G
 readme = "README.md"
 requires-python = ">=3.9,<3.11"
 authors = [{ name = "Dummy User", email = "dummy@gmail.com" }]
+dependencies = [
+    "transformers>=4.33,<4.37",
+]
 
 [project.optional-dependencies]
 original-impl = [
@@ -48,6 +51,7 @@ dev = [
     "ipython<8.12.1",
     "ipykernel>=6.23.3,<7",
     "pytest-sugar>=1.1.1",
+    "vulture>=2.14",
 ]
 
 [build-system]
@@ -70,6 +74,19 @@ where = ["src"]
 testpaths = ["tests"]
 addopts = "--cov=ralf --cov-report=term-missing --cov-fail-under=90"
 markers = ["cuda: requires CUDA/GPU for execution"]
+
+[tool.coverage.run]
+omit = [
+    "src/ralf/train/*",
+    "src/ralf/train/**",
+    "src/ralf/hfds_builder/*",
+    "src/ralf/hfds_builder/**",
+    "src/ralf/compare/*",
+    "src/ralf/compare/**",
+    "src/ralf/transformers/**/modeling_*.py",
+    "src/ralf/transformers/internal/*",
+    "src/ralf/transformers/internal/**",
+]
 
 [tool.ruff]
 line-length = 88
